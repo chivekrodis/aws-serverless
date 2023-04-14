@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@types/node": "^18.15.11",
+    "esbuild": "^0.17.16",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-esbuild": "^1.43.0",
+    "typescript": "^5.0.4"
+  }
+}

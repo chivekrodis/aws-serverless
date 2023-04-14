@@ -1,0 +1,23 @@
+custom:
+  esbuild:
+    config: './config.js'
+
+useDotenv: true
+
+service: authService
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  stage: dev
+  runtime: nodejs18.x
+  region: eu-west-1
+
+plugins:
+  - serverless-esbuild
+  - serverless-dotenv-plugin
+
+functions:
+  basicAuthorizer:
+    handler: index.basicAuthorizer

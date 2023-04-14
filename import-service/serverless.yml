@@ -1,0 +1,90 @@
+custom:
+  esbuild:
+    config: './config.js'
+  bucket: nodejs-in-aws-storage
+
+service: importService
+
+frameworkVersion: '3'
+
+useDotenv: true
+
+provider:
+  name: aws
+  stage: dev
+  runtime: nodejs18.x
+  region: eu-west-1
+  httpApi:
+    cors: true
+    authorizers:
+      basicAuthorizer:
+        type: request
+        identitySource:
+          - $request.header.Authorization
+        functionArn: arn:aws:lambda:eu-west-1:391010897057:function:authService-dev-basicAuthorizer
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: "sqs:*"
+          Resource:
+            Fn::ImportValue: sqsArn
+  environment:
+    BUCKET:
+      Ref: s3Bucket
+    SQS_URL:
+      Fn::ImportValue: sqsUrl
+
+plugins:
+  - serverless-esbuild
+
+package:
+  individually: true
+
+functions:
+  importProductsFile:
+    handler: importProductsFile/index.importProductsFile
+    events:
+      - httpApi:
+          path: /import
+          method: get
+          authorizer:
+            name: basicAuthorizer
+  importFileParser:
+    handler: importFileParser/index.importFileParser
+    events:
+      - s3:
+          bucket: ${self:custom.bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: uploaded/
+            - suffix: .csv
+          existing: true
+
+resources:
+  Resources:
+    s3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucket}
+        AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - GET
+                - PUT
+              AllowedOrigins: [ "*" ]
+              AllowedHeaders: [ "*" ]
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: ${self:custom.bucket}
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Action:
+                - "s3:*"
+              Effect: Allow
+              Resource: "arn:aws:s3:::${self:custom.bucket}/*"
+              Principal: "*"
